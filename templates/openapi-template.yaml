@@ -1,0 +1,114 @@
+openapi: 3.1.0
+info:
+  title: "{Service Name} API"
+  description: "IbbyTech Platform — {service-slug} gateway"
+  version: "1.0.0"
+
+servers:
+  - url: "https://{service-slug}.platform.ibbytech.com"
+    description: "FQDN (external / laptop dev)"
+  - url: "http://platform-{service-slug}:{port}"
+    description: "Docker internal (svcnode-01 container-to-container)"
+
+paths:
+  /health:
+    get:
+      summary: "Health check"
+      description: "Returns service status, DB connectivity, and config summary."
+      responses:
+        "200":
+          description: "Service healthy"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HealthResponse"
+        "503":
+          description: "Service unhealthy"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /v1/{resource}:
+    post:
+      summary: "{Describe what this endpoint does}"
+      description: "{Full description of the operation, inputs, and expected output.}"
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/{Resource}Request"
+      responses:
+        "200":
+          description: "Success"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/{Resource}Response"
+        "400":
+          description: "Bad request — missing or invalid parameters"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "401":
+          description: "Unauthorized — missing or invalid API key"
+        "500":
+          description: "Internal server error"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      description: "API key — set as {SERVICE}_API_KEY in .env"
+
+  schemas:
+    HealthResponse:
+      type: object
+      properties:
+        status:
+          type: string
+          example: "healthy"
+        db:
+          type: string
+          example: "connected"
+        version:
+          type: string
+          example: "1.0.0"
+
+    ErrorResponse:
+      type: object
+      properties:
+        error:
+          type: string
+          description: "Human-readable error message"
+        detail:
+          type: string
+          description: "Optional additional context"
+
+    "{Resource}Request":
+      type: object
+      required:
+        - "{required_field}"
+      properties:
+        "{required_field}":
+          type: string
+          description: "{Description of this field}"
+
+    "{Resource}Response":
+      type: object
+      properties:
+        "{result_field}":
+          type: string
+          description: "{Description of the result}"
+        "{metadata_field}":
+          type: object
+          description: "{Any metadata returned}"

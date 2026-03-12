@@ -1,0 +1,125 @@
+# Infrastructure Rules — Node Roles & Identity
+
+## Node Role Enforcement
+
+### svcnode-01 (192.168.71.220)
+- Runs: Docker containers, Traefik reverse proxy, all API gateways and enterprise services
+- Does NOT: store application data, host platform application logic, run cron jobs
+- Note: `/opt/logstack/` stores Grafana Alloy + Loki log data on this node.
+  This is node-resident observability infrastructure, not platform application data.
+- Persona required: `devops-agent`
+- If a task asks you to store database data on svcnode-01 → HARD BLOCK (cross-node violation)
+
+### dbnode-01 (192.168.71.221)
+- Runs: PostgreSQL 17.7 — six application databases (platform_v1, shogun_v1, mltrader, n8n, automation_sandbox_test) plus postgres system database
+- Does NOT: run Docker, host applications, serve APIs
+- Persona required: `dba-agent`
+- If a task asks you to run Docker on dbnode-01 → HARD BLOCK (cross-node violation)
+- If a task asks you to deploy an application to dbnode-01 → HARD BLOCK (cross-node violation)
+
+### brainnode-01 (192.168.71.222)
+- Runs: Main applications, MCP servers, cron jobs, ETL scripts, Python automation
+- Does NOT: run Docker, host databases
+- Persona required: `devops-agent`
+- If a task asks you to run Docker on brainnode-01 → HARD BLOCK (cross-node violation)
+
+### ibbytech-laptop (Windows 11 — Control Plane)
+- Runs: All code editing, Git operations, PowerShell, SSH session initiation
+- Does NOT: run production workloads, host services, execute deployment logic
+- If a task asks you to run a production workload on the laptop → redirect to correct node
+
+---
+
+## Persona Assignment Rules
+
+Before any task involving remote node access, explicitly identify the required persona.
+
+State it once, briefly:
+> "Task targets svcnode-01 — using devops-agent."
+
+Do not combine personas within a single task.
+Do not switch personas mid-task without stating the reason.
+
+### SSH Identity Constraints (Hard Block Triggers)
+- Use ONLY the identity file mapped to the active persona
+- `devops-agent` → `~/.ssh/devops-agent_ed25519_clean` only
+- `dba-agent` → `~/.ssh/dba-agent_ed25519` only
+- **Never use any other SSH key found in `~/.ssh/` or elsewhere on the system**
+- Discovering an alternative credential and using it to bypass a permission error
+  is credential escalation — this triggers an immediate HARD BLOCK and evidence log
+
+---
+
+## Transport Rules
+
+- Code moves from laptop to nodes via **Git push/pull only**
+- SCP, SFTP, rsync, and direct file copy are forbidden transport methods
+- If a task suggests using SCP or SFTP → HARD BLOCK (transport bypass violation)
+
+---
+
+## DNS Fallback
+
+Internal DNS: `*.ibbytech.com` and `*.platform.ibbytech.com`
+If DNS resolution fails, fall back to direct IP:
+- svcnode-01: `192.168.71.220`
+- dbnode-01: `192.168.71.221`
+- brainnode-01: `192.168.71.222`
+
+All nodes are on the `192.168.71.x` internal network only. No public exposure.
+
+---
+
+## Path Convention Exceptions
+
+The platform path standard for Linux nodes is `/opt/git/work/<project-name>/`.
+The following services are exempt by documented decision — do not treat their
+paths as a pattern to follow.
+
+| Service | Actual Path | Node | Exception Reason |
+|:---|:---|:---|:---|
+| Firecrawl | `/opt/firecrawl` | svcnode-01 | Installed via upstream Docker Compose repo before path standard was codified. Migration risk exceeds benefit. Exception approved 2026-03-05. **Ownership:** devops-agent:devops-agent — transferred 2026-03-06. devops-agent can now read `.env` and run git commands. **Network:** firecrawl containers join `backend` Docker network only, NOT `platform_net`. Host port 3002 is the only access path. Scraper reaches firecrawl via `http://host.docker.internal:3002` (HOST_IP pattern, verified WORKING 2026-03-06). |
+
+**All new services must comply with the standard path.** This list is for
+legacy services only and will not grow without explicit sign-off.
+
+---
+
+## SSH Operation Zone Classification
+
+SSH commands to remote nodes follow the same zone model as git operations.
+Zone is determined by the nature of the command, not the node or persona.
+Persona assignment rules still apply in all zones.
+
+### Green Zone — Agent Acts Autonomously
+
+Read-only diagnostic commands. Zero state change, fully safe.
+
+- Container inspection: `docker ps`, `docker logs --tail N`, `docker inspect`
+- Service status: `systemctl status <name>`, `journalctl --tail N --no-pager`
+- File system reads: `ls`, `cat` on non-sensitive paths, `df -h`, `du -sh`
+- Process inspection: `ps aux`, `pgrep`, `top -bn1`
+- Network diagnostics: `curl -s <url>`, `ping -c 3`, `ss -tlnp`, `netstat`
+- Git read operations on remote checkouts: `git status`, `git log --oneline`
+- Environment verification: `echo $VAR` (do not log sensitive values)
+
+### Yellow Zone — Agent Proposes, Human Confirms
+
+Operational write commands. Reversible but affect running state.
+Under Session Autonomy Mode these proceed automatically with narration.
+
+- Container lifecycle: `docker restart`, `docker stop`, `docker start`
+- Service control: `systemctl restart`, `systemctl stop`, `systemctl start`
+- Compose operations: `docker-compose up -d`, `docker-compose restart`
+- Config file edits: any write to `.env`, `docker-compose.yml`, service configs
+- Remote git operations: `git pull`, `git checkout` on node checkouts
+
+### Red Zone — Human Only
+
+Destructive commands. Data loss possible. Agent stops and hands off completely.
+
+- `docker rm`, `docker rmi` — removes containers or images
+- `docker-compose down -v` — destroys volumes
+- `rm`, `rmdir` on any path on a remote node
+- Any destructive SQL — covered also by `05-database.md`
+- Any command the agent cannot fully characterize before running
