@@ -1,0 +1,84 @@
+{
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Write|Edit|MultiEdit|Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python \"${CLAUDE_PLUGIN_ROOT}/hooks/secret_guard.py\"",
+            "timeout": 10
+          }
+        ]
+      },
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python \"${CLAUDE_PLUGIN_ROOT}/hooks/destructive_deny.py\"",
+            "timeout": 10
+          },
+          {
+            "type": "command",
+            "command": "python \"${CLAUDE_PLUGIN_ROOT}/hooks/persona_boundary.py\"",
+            "timeout": 10
+          },
+          {
+            "type": "command",
+            "command": "python \"${CLAUDE_PLUGIN_ROOT}/hooks/no_laptop_docker.py\"",
+            "timeout": 10
+          }
+        ]
+      }
+    ],
+    "UserPromptSubmit": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python \"${CLAUDE_PLUGIN_ROOT}/hooks/completion_condition_check.py\"",
+            "timeout": 10
+          }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python \"${CLAUDE_PLUGIN_ROOT}/hooks/deploy_verify.py\"",
+            "timeout": 10,
+            "asyncRewake": true,
+            "rewakeMessage": "A docker restart was run, which reuses the existing image. If code changed, rebuild with 'docker compose up -d --build' instead of relying on a restart.",
+            "rewakeSummary": "Flagged docker restart vs rebuild mismatch"
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python \"${CLAUDE_PLUGIN_ROOT}/hooks/handoff_writer.py\"",
+            "timeout": 10,
+            "asyncRewake": true,
+            "rewakeMessage": "No handoff note was written in the last 120 minutes under outputs/work-log/. Consider writing a one-page summary (what was done, files changed, decisions, next-session start point) before ending the session.",
+            "rewakeSummary": "Reminded to write a session handoff note"
+          },
+          {
+            "type": "command",
+            "command": "python \"${CLAUDE_PLUGIN_ROOT}/hooks/verify_before_done.py\"",
+            "timeout": 10,
+            "asyncRewake": true,
+            "rewakeMessage": "Before declaring this done, confirm the change with observable evidence (a passing test, an endpoint response, a row count) rather than self-report alone.",
+            "rewakeSummary": "Reminded to verify completion with observable evidence"
+          }
+        ]
+      }
+    ]
+  }
+}
