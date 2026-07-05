@@ -1,0 +1,17 @@
+{
+  "platform-retrieval": {
+    "command": "python",
+    "args": ["${CLAUDE_PLUGIN_ROOT}/mcp/platform_retrieval.py"],
+    "env": {
+      "PLATFORM_SCRAPE_BASE": "https://scrape.platform.ibbytech.com",
+      "PLATFORM_TAVILY_BASE": "https://tavily.platform.ibbytech.com",
+      "PLATFORM_PLACES_BASE": "https://places.platform.ibbytech.com",
+      "PLATFORM_REDDIT_BASE": "https://reddit.platform.ibbytech.com"
+    }
+  },
+  "homelab-logs": {
+    "command": "python",
+    "args": ["${CLAUDE_PLUGIN_ROOT}/mcp/homelab_logs.py"],
+    "env": { "LOKI_BASE": "http://192.168.71.220:3100" }
+  }
+}

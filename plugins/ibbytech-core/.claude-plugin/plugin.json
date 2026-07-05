@@ -1,0 +1,9 @@
+{
+  "name": "ibbytech-core",
+  "description": "Shared baseline: planner/implementer/reviewer-validator/docs sub-agents, mixed-posture guardrail hooks (hard-block safety, soft-warn process), two-commit git discipline, and bundled platform MCP connectors.",
+  "version": "0.1.1",
+  "author": {
+    "name": "IbbyTech",
+    "email": "tibbotson@gmail.com"
+  }
+}

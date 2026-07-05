@@ -1,0 +1,15 @@
+{
+  "$schema": "https://anthropic.com/claude-code/marketplace.schema.json",
+  "name": "ibbytech-marketplace",
+  "description": "IbbyTech shared Claude Code framework — scoped sub-agents, guardrail hooks, git discipline, and platform MCP connectors, distributed to all IbbyTech repos from one source.",
+  "owner": { "name": "IbbyTech", "email": "tibbotson@gmail.com" },
+  "plugins": [
+    {
+      "name": "ibbytech-core",
+      "description": "Shared baseline: planner/implementer/reviewer-validator/docs sub-agents, mixed-posture guardrail hooks (hard-block safety, soft-warn process), two-commit git discipline, and bundled platform MCP connectors.",
+      "author": { "name": "IbbyTech" },
+      "source": "./plugins/ibbytech-core",
+      "category": "development"
+    }
+  ]
+}
