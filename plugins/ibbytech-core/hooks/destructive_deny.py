@@ -31,7 +31,11 @@ rule(
 )
 rule("git reset --hard", r"\bgit\s+reset\s+--hard\b")
 rule("git clean -fd/-fdx", r"\bgit\s+clean\s+-[a-z]*f[a-z]*d[a-z]*\b")
-rule("git branch -D", r"\bgit\s+branch\s+-D\b")
+# Case-sensitive on purpose: -D (force-delete, Red Zone per 04-git-discipline)
+# must block, but safe -d (post-merge delete, Yellow Zone with human confirm)
+# must pass. The module default IGNORECASE made -d match too, overblocking
+# the sanctioned operation.
+rule("git branch -D", r"\bgit\s+branch\s+-D\b", flags=0)
 
 # --- filesystem ----------------------------------------------------------
 rule("rm -rf /", r"\brm\s+-[a-z]*r[a-z]*f[a-z]*\s+/(?:\s|$)")
