@@ -4,6 +4,13 @@
 Replaces Git Discipline v1 in full. v1's develop-branch model, dated branch-naming
 hard blocks, and worktree lifecycle hard blocks are deleted, not carried forward.
 
+*(Reconciliation note: an independent trunk-based rewrite of this file merged to
+`main` via PR #3 the same day, before this branch merged. Both rewrites agreed on
+the core shift (trunk-based, no develop); where they differed (naming/worktree
+hard blocks, the two-commit definition), this version is canonical per repo-owner
+ruling, and `plugins/ibbytech-core/skills/git-discipline/SKILL.md` was updated to
+match — one rulebook, two locations, kept in sync.)*
+
 ---
 
 ## Rule 1 — Trunk-Based Development (GitHub Flow)
