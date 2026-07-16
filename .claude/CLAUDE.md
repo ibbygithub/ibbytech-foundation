@@ -17,7 +17,7 @@ projects at a different directory depth without updating this path.
 ## Contents
 
 - `.claude/rules/` — Rules 01–05 (infrastructure, safety, standards, git, database)
-- `skills/` — CISO security, dbnode-01, advanced-planner
+- `skills/` — ciso-security, dbnode-01
 - `templates/` — service-doc, evidence-report, openapi skeleton, project CLAUDE.md,
   settings baseline
 

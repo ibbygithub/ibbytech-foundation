@@ -1,7 +1,7 @@
 # Evidence Report — [Task Name]
 
 **Date:** YYYY-MM-DD
-**Branch:** [feature/YYYYMMDD-task-slug or develop]
+**Branch:** [feature/<name> or fix/<name>]
 **Task:** [Plain English description of what was done]
 **Node(s):** [svcnode-01 / dbnode-01 / brainnode-01 / laptop only]
 **Persona(s):** [devops-agent / dba-agent / none]
