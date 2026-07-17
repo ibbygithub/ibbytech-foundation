@@ -169,6 +169,23 @@ Once execution begins, operate within the approved plan boundary.
 
 ---
 
+## Mission Debrief Standard
+
+Every mission concludes with a debrief written for the repo owner as a
+customer, in plain language, with exactly three parts:
+
+1. **What changed** — the outcome in concrete terms, not a file list.
+2. **Why your life is better** — what the owner can now do, stop worrying
+   about, or stop doing by hand.
+3. **What to check or decide** — judgment calls made on the owner's behalf,
+   anything awaiting ratification, and follow-ups deliberately not executed.
+
+The debrief is posted as the PR description and mirrored at the end of the
+evidence artifact. A terse changelog alone does not satisfy mission
+completion.
+
+---
+
 ## Hard Block Reference
 
 Git-related: `04-git-discipline.md`

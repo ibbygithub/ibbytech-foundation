@@ -1,5 +1,6 @@
 {
   "permissions": {
+    "defaultMode": "acceptEdits",
     "allow": [
 
       "Bash(ssh -i ~/.ssh/devops-agent_ed25519_clean devops-agent@192.168.71.220 cat *)",
@@ -143,7 +144,17 @@
       "Bash(python --version*)",
       "Bash(python3 --version*)",
       "Bash(git --version*)",
-      "Bash(claude --version*)"
+      "Bash(claude --version*)",
+
+      "Bash(gh auth status)",
+      "Bash(gh pr create*)",
+      "Bash(gh pr view*)",
+      "Bash(gh pr list*)",
+      "Bash(gh pr diff*)",
+      "Bash(gh repo view*)",
+      "Bash(gh api -X GET *)",
+      "Bash(gh api --method GET *)",
+      "Bash(gh api --method=GET *)"
     ],
 
     "deny": [
@@ -282,7 +293,14 @@
       "Bash(find *secret* -exec*)",
       "Bash(find *credential* -exec*)",
       "Bash(find *auth.json* -exec*)",
-      "Bash(find *token* -exec*)"
+      "Bash(find *token* -exec*)",
+
+      "Bash(gh repo delete*)",
+      "Bash(gh pr merge*)",
+      "Bash(gh api *-X*DELETE*)",
+      "Bash(gh api *-X*delete*)",
+      "Bash(gh api *--method*DELETE*)",
+      "Bash(gh api *--method*delete*)"
     ]
   }
 }
