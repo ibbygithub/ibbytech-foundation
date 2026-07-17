@@ -167,11 +167,106 @@ Logical commit 2: this commit — docs(evidence): phase 2A governance hardening 
 
 ---
 
+## Reconciliation Addendum (owner-directed, post-initial-completion)
+
+### Context
+
+Before PR #4 could be merged, `gh pr view` reported it `CONFLICTING`/`DIRTY`. Investigation found `origin/main` had advanced independently while this branch was in flight: **PR #3**, merged by the `ibbygithub` account itself at 2026-07-15T23:44:33Z (commits `dbf7541`, `21fde17`, merge `e261bca`), introduced its own trunk-based rewrite of `04-git-discipline.md` *and* a new `plugins/ibbytech-core/` governance system (skills, runtime hooks, `.claude-plugin/marketplace.json`) — 42 files, 4,250 insertions. PR #3's own description states it is "the foundation counterpart of platform PR #14, which is now merged... platform docs already reference this rule state," meaning a sibling repo already depends on main's current wording.
+
+The two rewrites agreed on the headline goal (trunk-based, no develop branch) but differed in specifics: PR #3 kept dated `YYYYMMDD` branch naming and worktree lifecycle as hard blocks (Doctrine v2 deletes both), and the plugin's `git-discipline` skill defined TWO-COMMIT discipline's second commit as "tests, fixtures, and documentation" where Doctrine v2 defines it as the evidence artifact. This was reported to the owner in full (both file contents, PR #3's description, a merge-tree dry run) rather than resolved unilaterally, since it involves a cross-repo dependency outside this repo's visibility.
+
+### Owner Ruling
+
+The owner, given the discovery, issued an explicit ruling via chat: merge PR #5 immediately (no conflict); reconcile PR #4 by merging `origin/main` into this branch (no rebase, no force-push); retain `plugins/ibbytech-core/`'s architecture in full; make Doctrine v2 canonical for rule content everywhere (naming, worktrees, two-commit definition), updating both `04-git-discipline.md` and the plugin's `git-discipline` skill to match; audit every runtime hook for re-imposition of a deleted rule; keep `.claude/settings.json`/`templates/settings-baseline.json` as landed; record the platform-repo alignment need as a follow-up without executing it; verify; document; and — with explicit owner authorization as repo owner — merge PR #4.
+
+### Actions Taken
+
+1. **PR #5 merged** (`gh pr merge 5 --merge`) — merge commit `79e96f1`, content unchanged.
+2. **`git fetch origin main`**, then **`git merge origin/main --no-commit --no-ff`** into `feature/governance-hardening-v2` (merge commit `6ee62e9`, no rebase, no force-push). All 43 net-new paths from main (plugin tree, marketplace manifest, new skills, the audit doc via #5) merged in cleanly; the sole conflict was `.claude/rules/04-git-discipline.md`.
+3. **Conflict resolved** via `git checkout --ours .claude/rules/04-git-discipline.md` (Doctrine v2 content wins per the ruling), plus a one-paragraph provenance note added to the file documenting the reconciliation and pointing at the plugin skill as the second, now-synced location.
+4. **`plugins/ibbytech-core/skills/git-discipline/SKILL.md` rewritten** to match Doctrine v2 exactly: the "Repository Shape (generic)" three-tier/direct table replaced with a single trunk-based statement that cross-references `04-git-discipline.md` as canonical; "Branch Promotion: develop to main" replaced with "Pre-Merge Checklist: Landing a PR on main" (develop-specific steps dropped, the valuable pre-flight checklist items kept, the Promotion Ready notice removed in favor of referencing Doctrine v2's existing Merge Ready Notice rather than maintaining two copies); TWO-COMMIT discipline redefined to implementation (code+tests+fixtures) / evidence-artifact, matching the owner's exact wording; remaining incidental `develop` references fixed in Release Tagging, Stale Branch Cleanup (`origin/develop` → `origin/main`, dropped from the protected-branch list), Push Zones (dropped "integration-branch" framing), and Post-Merge Validation.
+5. **Hook audit** — all 9 files under `plugins/ibbytech-core/hooks/` read in full (`destructive_deny.py`, `secret_guard.py`, `persona_boundary.py`, `no_laptop_docker.py`, `completion_condition_check.py`, `deploy_verify.py`, `handoff_writer.py`, `verify_before_done.py`, `selftest.py`, plus `hooks.json` and `README.md`). Disposition table below.
+6. **Plugin release procedure followed** (the `marketplace-maintainer` skill surfaced mid-task and was invoked before going further, since it explicitly covers "editing anything under `plugins/ibbytech-core/`"): version bumped `0.1.1` → `0.2.0` in `plugin.json` (minor, not patch — the skill content change is behavioral, not just wording, and could affect a consuming repo still on the old model; not major, since no component was removed/renamed and no hook trigger behavior changed). `claude plugin validate plugins/ibbytech-core` and `claude plugin validate .` both passed with zero errors before commit. Cache refreshed with `claude plugin update ibbytech-core@ibbytech-marketplace`; `claude plugin details ibbytech-core` confirms `0.2.0` live with the expected 8-skill/4-agent/4-hook/2-MCP-server inventory.
+
+### Hook Disposition Table
+
+| Hook | Enforces naming/worktree/2-commit? | Disposition |
+|:--|:--|:--|
+| `destructive_deny.py` | No — force-push, hard reset, forced clean, `branch -D`, `rm -rf /`\|`~`, `chmod 777`, docker kill/rm/rmi, systemctl stop/disable, reboot/shutdown/poweroff, destructive SQL, ssh remote destructive commands | **NO CHANGE** — pure destructive-action safety, orthogonal to the governance-model rules that changed |
+| `secret_guard.py` | No — live-credential pattern matching | **NO CHANGE** — unrelated |
+| `persona_boundary.py` | No — SSH key/persona/node-target matching | **NO CHANGE** — unrelated |
+| `no_laptop_docker.py` | No — blocks local bring-up of tracked prod services | **NO CHANGE** — unrelated |
+| `completion_condition_check.py` | No — soft-warn on missing completion condition | **NO CHANGE** — unrelated |
+| `deploy_verify.py` | No — soft-warn on `docker restart` vs rebuild | **NO CHANGE** — unrelated |
+| `handoff_writer.py` | No — soft-warn on missing session handoff note | **NO CHANGE** — unrelated |
+| `verify_before_done.py` | No — soft-warn to verify with evidence before finishing | **NO CHANGE** — unrelated |
+| `selftest.py` | No — tests only the 4 hard-block hooks above, none of which touch naming/worktree/2-commit | **NO CHANGE** — nothing to test |
+| `hooks.json` / `README.md` | No — registration/category listing only, no rule content | **NO CHANGE** — structural, not content |
+
+**Result: zero hooks required edits.** No runtime enforcement re-imposes a rule Doctrine v2 deleted — all prose/behavioral drift was confined to the two documentation locations (`04-git-discipline.md`, already resolved before this reconciliation began, and the plugin skill, resolved in step 4 above).
+
+### Verification
+
+```
+=== JSON VALIDITY (post-reconciliation) ===
+settings.json: OK
+settings-baseline.json: OK
+plugin.json: OK
+marketplace.json: OK
+
+=== DATED-NAMING SWEEP (.claude/rules/ + plugins/ibbytech-core/skills/) ===
+1 match: plugins/ibbytech-core/skills/documentation/SKILL.md:210
+  "`adr-YYYYMMDD-<slug>.md`" — an architecture-decision-record filename
+  convention, unrelated to branch naming. Not a naming hard block.
+
+=== WORKTREE HARD-BLOCK SWEEP (.claude/rules/ + plugins/ibbytech-core/skills/) ===
+0 matches.
+
+=== FULL REPO-WIDE "develop" SWEEP (post-merge, 43 new files included) ===
+All matches are one of:
+  (a) Doctrine v2 / plugin-skill deletion or provenance statements
+      (.claude/rules/04-git-discipline.md, plugins/.../git-discipline/SKILL.md)
+  (b) historical records exempt by the mission's own terms (the audit doc,
+      the mission file, this evidence report's own V4 section)
+  (c) the ordinary English words "develop"/"developer"/"development"
+      unrelated to branches (marketplace.json category field,
+      skills/ciso-security.md, plugins/.../documentation/SKILL.md,
+      plugins/.../secret-hygiene/SKILL.md)
+Zero operative develop-branch references anywhere in the repo, including
+the newly-merged plugin tree.
+
+=== PLUGIN RELEASE ===
+claude plugin validate plugins/ibbytech-core  → ✔ Validation passed
+claude plugin validate .                      → ✔ Validation passed
+claude plugin update ibbytech-core@ibbytech-marketplace
+  → Plugin "ibbytech-core" updated from 0.1.1 to 0.2.0 for scope user.
+claude plugin details ibbytech-core
+  → ibbytech-core 0.2.0; Skills (8) commit, commit-push-pr, documentation,
+    git-discipline, goal, handoff, secret-hygiene, team-orchestrator;
+    Agents (4); Hooks (4 event types); MCP servers (2) — inventory as expected.
+```
+
+### Cross-Repo Follow-Up (recorded per owner ruling — NOT executed)
+
+`plugins/ibbytech-core` version `0.2.0` is live in this repo (the plugin's single source of truth) only. Per the marketplace-maintainer skill's rollout rules, enabling/updating the plugin in a consuming repo is that repo's own reviewed diff, not something pushed out from here — and per this mission's constraint ("modify only this repository"), no other repo was touched. Open follow-up for the owner: the **platform** repo's docs reference main's PR #3 rule state directly (per PR #3's own description); it — and the other three consuming repos (`biomesh`, `shogun`, `Trading-research`) — should be audited for which `ibbytech-core` version they have enabled/cached (`claude plugin details ibbytech-core` in each) and updated once each repo's maintainer/session reviews the `0.2.0` diff.
+
+### PR Merge Status
+
+```
+PR #5: MERGED  → merge commit 79e96f1 (2026-07-16T23:43:36Z)
+PR #4: reconciliation pushed (commits 6ee62e9, 9082119, plus this evidence
+       commit) — `gh pr merge 4` executed immediately after this commit is
+       pushed, on the explicit owner authorization recorded above. GitHub's
+       PR #4 page carries the resulting merge commit SHA and timestamp.
+```
+
+---
+
 ## Green Gate Checklist
 
 | # | Item | Status |
 |:--|:-----|:-------|
-| 1 | Validate PASS | SKIP (non-service task) |
+| 1 | Validate PASS | PASS — `claude plugin validate` (plugin + marketplace root), both zero errors |
 | 2 | Loki Level 1 | SKIP (non-service task) |
 | 3 | OpenAPI spec | SKIP (non-service task) |
 | 4 | Capability registry | SKIP (non-service task) |
@@ -183,4 +278,4 @@ Logical commit 2: this commit — docs(evidence): phase 2A governance hardening 
 
 ## Outcome
 
-**COMPLETE** — Doctrine v2 in force on the branch, `main` protected server-side, live hardened permission policy in place, hygiene gaps closed, both PRs open for owner review (merging intentionally left to the owner). Follow-ups outside this mission's scope: node-side audit gaps P1-1, P1-3, P3-2 (brainnode-01 auth/MCP/install ownership) and the audit's Domain 2 subagent layer remain open.
+**COMPLETE** — Doctrine v2 is canonical in both locations (`04-git-discipline.md` and the `ibbytech-core` plugin's `git-discipline` skill), reconciled with an independently-merged interim rewrite discovered mid-task; `main` is protected server-side; the hardened permission policy is live; hygiene gaps are closed; the `ibbytech-core` plugin is validated, version-bumped, and cache-refreshed; both PRs are merged. Follow-ups outside this mission's scope: node-side audit gaps P1-1, P1-3, P3-2 (brainnode-01 auth/MCP/install ownership), the audit's Domain 2 subagent layer, and the cross-repo `ibbytech-core` version alignment recorded above.
