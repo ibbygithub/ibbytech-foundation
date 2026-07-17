@@ -1,35 +1,33 @@
 ---
 name: git-discipline
 description: >
-  Commit message convention, TWO-COMMIT discipline, branch promotion, release
+  Commit message convention, TWO-COMMIT discipline, pre-merge checklist, release
   tagging, changelog generation, stale branch cleanup, and PR standards. Use
-  this skill when committing, promoting a branch, creating a release,
+  this skill when committing, landing a PR on main, creating a release,
   reviewing PR quality, or managing repository hygiene in any IbbyTech repo.
 user-invocable: true
 ---
 
-# Git Discipline — Commit Convention, Promotion, and Repository Hygiene
+# Git Discipline — Commit Convention, Merge Checklist, and Repository Hygiene
 
 ## Purpose
 
 Operational procedures for the full code lifecycle, applicable to any
 IbbyTech repository regardless of its specific branch names or service
-layout. Defines commit conventions, the TWO-COMMIT discipline, promotion
-logic, tagging, changelogs, and cleanup.
+layout. Defines commit conventions, the TWO-COMMIT discipline, the
+pre-merge checklist, tagging, changelogs, and cleanup.
 
 ---
 
-## Repository Shape (generic)
+## Repository Shape
 
-Repos in this ecosystem generally follow one of two shapes:
-
-| Shape | Default Branch | Integration Branch | Applies to |
-|:------|:----------------|:--------------------|:-----------|
-| Three-tier | `main` or `master` | `develop` | Application and infrastructure repos with staged rollout |
-| Direct | `main` | — | Standards/docs-only repos where changes land on `main` directly (lightweight task or PR) |
-
-Confirm which shape a given repo uses before promoting — check for a
-`develop` branch rather than assuming.
+Every repo in this ecosystem is trunk-based: one default branch (`main` or
+`master`) plus short-lived `feature/<name>` or `fix/<name>` branches that
+land via pull request. There is no `develop` or other integration branch,
+in any repo — do not create one, do not check for one, do not reference one.
+This is Git Doctrine v2 (see the foundation repo's
+`.claude/rules/04-git-discipline.md`, the canonical source for branch/merge
+rules — this skill's procedures must stay identical to it).
 
 ---
 
@@ -37,17 +35,17 @@ Confirm which shape a given repo uses before promoting — check for a
 
 Every scoped task produces exactly two commits, in this order:
 
-1. **Implementation commit** — the code/config change itself. Stage only
-   the files that realize the scoped change. Review the staged diff before
+1. **Implementation commit** — the code, configuration, or documentation
+   change itself, including any tests or fixtures it needs. Stage only the
+   files that realize the scoped change. Review the staged diff before
    committing. Do not push yet.
-2. **Completion commit** — tests, fixtures, and documentation that round
-   out the change (plus anything deferred from commit 1 for review clarity).
-   This commit is followed by push and PR.
+2. **Evidence-artifact commit** — the report in `outputs/validation/` (plus
+   any task specification documents). This commit is followed by push and PR.
 
 Do not collapse these into one commit, and do not split either one further
 without a reason tied to genuine separate concerns. This discipline exists
-so a reviewer can see "what changed" and "what proves/documents it changed"
-as distinct, reviewable units.
+so a reviewer can see "what changed" and "what proves it changed" as
+distinct, reviewable units.
 
 ---
 
@@ -71,48 +69,35 @@ that restate the type (`fix(chat): fix the chat`).
 
 ---
 
-## Branch Promotion: develop to main
+## Pre-Merge Checklist: Landing a PR on main
 
-The most consequential git operation for three-tier repos. Updates
-production-canonical state.
+The most consequential git operation in a trunk-based repo. Updates
+production-canonical state. main is protected server-side (PR required,
+force-push and deletion blocked per Doctrine v2 Rule 2) — this checklist is
+what the agent verifies before presenting the Merge Ready notice and asking
+for the human confirmation Doctrine v2 requires.
 
-### Pre-Promotion Checklist (all must pass)
+### Pre-Merge Checklist (all must pass)
 
-1. No known regressions (no open fix-in-progress on develop)
-2. All features complete (no half-merged branches targeting this promotion)
+1. No known regressions (no open fix-in-progress on this branch)
+2. The scoped task is complete (no half-finished work targeting this PR)
 3. Planning/tracking docs reflect reality
 4. Infrastructure changes have validation evidence recorded
-5. `git status` clean on develop
+5. `git status` clean on the feature/fix branch
 6. Tests pass (if applicable)
 7. Project CLAUDE.md reflects current architecture
-8. `git diff main...develop` contains no leaked credentials
+8. `git diff main...<branch>` contains no leaked credentials
 
-### Promotion Procedure
+### Procedure
 
-1. Checkout `develop`, pull latest
-2. `git diff main...develop --stat` and `git log main...develop --oneline`
-3. Present **Promotion Ready** notice (below)
+1. Checkout the feature/fix branch, ensure it's pushed
+2. `git diff main...<branch> --stat` and `git log main...<branch> --oneline`
+3. Present the **Merge Ready Notice** defined in `04-git-discipline.md`
 4. Wait for explicit human approval — always treat as a confirm-first action
-5. `git checkout main && git merge develop --no-ff`
-6. Tag the release (see Release Tagging)
-7. `git push origin main --tags`
-8. Write evidence of the promotion (what changed, when, checklist result)
-
-### Promotion Ready Notice
-
-```
-╔══════════════════════════════════════════════════════════════════╗
-║  PROMOTION READY — develop → main                               ║
-╠══════════════════════════════════════════════════════════════════╣
-║  Repo:       <repo-name>                                        ║
-║  Commits:    N since last promotion (YYYY-MM-DD to YYYY-MM-DD)  ║
-║  Files:      N modified, N added, N deleted                     ║
-║  Checklist:  8/8 passed                                         ║
-╚══════════════════════════════════════════════════════════════════╝
-Key changes:
-- [features] / [fixes] / [infrastructure]
-Respond "proceed" to promote, or "hold" to pause.
-```
+5. Merge the PR (`gh pr merge` or web UI) — human executes, or agent on
+   explicit human instruction only
+6. Tag the release if this lands a release (see Release Tagging)
+7. Write evidence of the merge (what changed, when, checklist result)
 
 ---
 
@@ -127,7 +112,7 @@ git tag -a v2026.03.19 -m "Release 2026-03-19: <one-line summary>"
 ```
 
 **Rules:**
-- Tags only on `main`/`master`, never on `develop` or feature branches
+- Tags only on `main`/`master`, never on feature/fix branches
 - Tag creation requires human confirmation before pushing
 - Push immediately: `git push origin --tags`
 - Never delete or move a pushed tag — treat as irreversible
@@ -207,21 +192,21 @@ Every PR needs a description. Empty descriptions are a review failure.
 
 ### Definition of Stale
 
-All must be true: last commit older than 14 days, fully merged into the
-integration branch (or `main`/`master`), no active work declared.
+All must be true: last commit older than 14 days, fully merged into `main`
+(or `master`), no active work declared.
 
 ### Workflow
 
-1. Detect: `git branch -r --merged origin/develop`
+1. Detect: `git branch -r --merged origin/main`
 2. Check age: `git log -1 --format="%ci" origin/<branch>`
 3. Present candidates with dates and merge status to human
 4. Wait for approval
-5. For each approved: verify `git log --oneline origin/<branch> ^develop` is
-   empty, then `git push origin --delete <branch>`
+5. For each approved: verify `git log --oneline origin/<branch> ^origin/main`
+   is empty, then `git push origin --delete <branch>`
 6. Record cleanup evidence (branch name, last-commit date, approval)
 
-**Protected (never delete):** `main`, `master`, `develop`, any node/service
-identity branches, any branch with unmerged commits.
+**Protected (never delete):** `main`, `master`, any node/service identity
+branches, any branch with unmerged commits.
 
 ---
 
@@ -269,17 +254,17 @@ Violation is a hard block: `TRANSPORT_BYPASS`.
 
 ### Push Zones (risk framing)
 
-- Feature branch push: propose and wait for confirmation
-- Integration-branch push (docs/chore on approved paths): can proceed autonomously
-- Integration-branch push (code changes): propose and wait
-- Main/master push: only after promotion approval
+- Feature/fix branch push: propose and wait for confirmation, except
+  docs/chore commits on the Green Zone paths listed in `04-git-discipline.md`,
+  which can proceed autonomously
+- Main/master push: never direct — main only changes via a merged PR
 - Force push: never
 
 ---
 
 ## Post-Merge Validation
 
-After any merge to the integration branch:
+After any PR merges to main:
 
 1. `git log --oneline -5 <branch>` — confirm merge commit present
 2. Check for conflict markers (`<<<<<<<`) in merged files
